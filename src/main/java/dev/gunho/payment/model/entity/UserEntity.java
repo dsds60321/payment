@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 public class UserEntity {
 
     @Id
+    private Long idx;
     private String userId;
     private Status status;
     private String payKey;

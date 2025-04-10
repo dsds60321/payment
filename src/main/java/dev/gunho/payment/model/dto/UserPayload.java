@@ -14,7 +14,9 @@ public class UserPayload {
         private String userId;
     }
 
+    // TODO: 맵스트럭쳐 적용
     @Getter
+    @Builder
     public static class Response {
         private String userId;
         private String payKey;

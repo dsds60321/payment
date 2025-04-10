@@ -10,8 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.server.ServerRequest;
-import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
@@ -27,13 +25,22 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public Mono<ServerResponse> createUser(ServerRequest request) {
-        return request.bodyToMono(UserPayload.Request.class)
-                .flatMap(this::mapToEntityWithPayKey)
-                .flatMap(userRepository::save)
-                .flatMap(user -> ServerResponse.ok().bodyValue(user))
-                .switchIfEmpty(ServerResponse.notFound().build());
+    public Mono<UserPayload.Response> createUser(UserPayload.Request request) {
+        return mapToEntityWithPayKey(request)
+                .flatMap(user -> {
+                    log.debug("Saving new user with ID: {}", user.getUserId());
+                    return userRepository.save(user); // 항상 INSERT로 동작
+                })
+                .flatMap(user -> {
+                    UserPayload.Response response = UserPayload.Response.builder()
+                            .userId(user.getUserId())
+                            .payKey(user.getPayKey())
+                            .regDate(user.getRegDate())
+                            .build();
+                    return Mono.just(response);
+                });
     }
+
 
     private Mono<UserEntity> mapToEntityWithPayKey(UserPayload.Request request) {
         String userId = request.getUserId();
@@ -41,20 +48,22 @@ public class UserServiceImpl implements UserService {
             return Mono.error(new IllegalArgumentException("userId is null or empty"));
         }
 
-        return userRepository.existsById(userId)
+        return userRepository.existsByUserId(userId)
                 .flatMap(exists -> {
-                    if(exists) {
+                    if (exists) {
                         return Mono.error(new IllegalArgumentException("userId is already exists"));
                     }
+
                     UserEntity user = UserEntity.builder()
-                            .userId(request.getUserId())
-                            .payKey(getPayKey())
-                            .status(Status.ACTIVE)
-                            .build();
+                        .userId(userId) // 요청에서 받은 userId 사용
+                        .status(Status.ACTIVE)
+                        .payKey(getPayKey())
+                        .build();
 
                     return Mono.just(user);
                 });
     }
+
 
 
     private String getPayKey() {
