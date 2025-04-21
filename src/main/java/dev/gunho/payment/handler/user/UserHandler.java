@@ -1,4 +1,4 @@
-package dev.gunho.payment.handler;
+package dev.gunho.payment.handler.user;
 
 import dev.gunho.payment.model.dto.UserPayload;
 import dev.gunho.payment.service.UserService;

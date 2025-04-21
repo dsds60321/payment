@@ -1,0 +1,33 @@
+= My First AsciiDoc Document
+Gunho Gang <gunho@example.com>
+v1.0, 2025-01-01
+:toc: left
+:icons: font
+:sectnums:
+:source-highlighter: rouge
+:stylesheet: css/custom-style.css
+:stylesdir: .
+
+== Welcome to AsciiDoc
+
+AsciiDoc는 강력한 문서 포맷으로 기술 문서, 블로그, 책 등을 작성할 때 사용할 수 있습니다.
+
+=== 주요 특징
+* 마크다운(Markdown)보다 강력한 기능 제공
+* HTML, PDF 등 다양한 출력 형식 지원
+* 코드 블럭 하이라이팅 지원
+
+[source,java]
+----
+public class HelloWorld {
+    public static void main(String[] args) {
+        System.out.println("Hello, AsciiDoc!");
+    }
+}
+----
+
+== 다음 단계
+
+1. AsciiDoc 문서를 작성합니다.
+2. 변환 스크립트를 실행합니다.
+3. 출력 결과를 확인하세요!

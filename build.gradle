@@ -1,7 +1,10 @@
+import org.asciidoctor.gradle.jvm.AsciidoctorTask
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.4.4'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.asciidoctor.jvm.convert' version '4.0.0' // Asciidoctor 플러그인
 }
 
 group = 'dev.gunho'
@@ -13,12 +16,6 @@ java {
     }
 }
 
-configurations {
-    compileOnly {
-        extendsFrom annotationProcessor
-    }
-}
-
 repositories {
     mavenCentral()
 }
@@ -27,15 +24,25 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
     implementation 'org.mariadb:r2dbc-mariadb'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'org.mapstruct:mapstruct:1.5.5.Final'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
+
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor "org.projectlombok:lombok-mapstruct-binding:0.2.0"
     runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'io.projectreactor:reactor-test'
-    testImplementation 'org.mockito:mockito-core' // Mockito 모킹 도구
+    testImplementation 'org.mockito:mockito-core'
 }
 
+tasks.named('asciidoctor', AsciidoctorTask) {
+    // AsciiDoc 문서 디렉터리와 HTML 출력 디렉터리 설정
+    sourceDir = file('src/docs/asciidoc') // AsciiDoc 소스 파일 경로
+    outputDir = file("${buildDir}/docs") // HTML 출력 위치
 
-tasks.named('test') {
-    useJUnitPlatform()
+    // 작업 완료 후 출력 경로 출력
+    doLast {
+        println("HTML 생성 완료! 출력 파일 위치: ${outputDir}")
+    }
 }

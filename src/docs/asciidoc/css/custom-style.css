@@ -1,0 +1,26 @@
+/* 문서의 전체 배경색 변경 */
+body {
+    background-color: #f4f4f4;
+    font-family: Arial, sans-serif;
+    color: #333;
+}
+
+/* 제목 스타일링 */
+h1, h2, h3 {
+    color: #2a7ae2;
+    text-transform: uppercase;
+}
+
+/* 코드 블럭 배경색 변경 */
+pre {
+    background-color: #000;
+    color: #00ff00;
+    padding: 10px;
+}
+
+/* 목차 스타일링 */
+#toc {
+    background-color: #eaeaea;
+    border: 1px solid #ccc;
+    padding: 10px;
+}

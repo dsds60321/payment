@@ -1,6 +1,6 @@
 package dev.gunho.payment.config;
 
-import dev.gunho.payment.handler.UserHandler;
+import dev.gunho.payment.handler.user.UserHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.server.RouterFunction;

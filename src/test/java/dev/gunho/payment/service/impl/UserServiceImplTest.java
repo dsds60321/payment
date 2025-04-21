@@ -1,117 +1,141 @@
 package dev.gunho.payment.service.impl;
 
 import dev.gunho.payment.model.dto.UserPayload;
+import dev.gunho.payment.model.entity.Status;
 import dev.gunho.payment.model.entity.UserEntity;
+import dev.gunho.payment.model.mapper.UserMapper;
 import dev.gunho.payment.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.server.ServerRequest;
-import org.springframework.web.reactive.function.server.ServerResponse;
+import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.time.LocalDateTime;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-
+@ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private UserMapper userMapper;
+
     @InjectMocks
     private UserServiceImpl userService;
 
-    @BeforeEach
-    void setup() {
-        MockitoAnnotations.openMocks(this); // Mockito 모킹 초기화
-    }
+    private UserEntity userEntityBeforeSave;
+    private UserEntity userEntityAfterSave;
+    private UserPayload.Request userRequest;
+    private UserPayload.Response userResponse;
+    private final String testUserId = "testUser123";
 
-    @Test
-    @Transactional
-    void createUser_shouldCreateUserSuccessfully_whenUserIdNotExists() {
-        // given
-        UserPayload.Request request = UserPayload.Request.builder()
-                .userId("testUser")
+    @BeforeEach
+    void setUp() {
+        // 테스트 데이터 초기화
+        userRequest = UserPayload.Request.builder()
+                .userId(testUserId)
                 .build();
 
-        ServerRequest serverRequest = mock(ServerRequest.class);
-        when(serverRequest.bodyToMono(UserPayload.Request.class)).thenReturn(Mono.just(request));
+        userEntityBeforeSave = UserEntity.builder()
+                .userId(testUserId)
+                .build();
 
-        // Mock 리포지토리 로직
-        when(userRepository.existsById("testUser")).thenReturn(Mono.just(false));
-        when(userRepository.save(any(UserEntity.class))).thenAnswer(invocation -> {
-            UserEntity user = invocation.getArgument(0);
-            System.out.println("save userId : "  + user.getUserId());
-            return Mono.just(user); // Mock 저장 시 사용자 반환
-        });
+        userEntityAfterSave = UserEntity.builder()
+                .idx(1L)
+                .userId(testUserId)
+                .status(Status.ACTIVE)
+                .payKey("20240520123456abc")
+                .regDate(LocalDateTime.now())
+                .build();
+
+        userResponse = UserPayload.Response.builder()
+                .userId(testUserId)
+                .status(Status.ACTIVE)
+                .payKey("20240520123456abc")
+                .regDate(LocalDateTime.now())
+                .build();
+    }
+
+
+    @Test
+    @DisplayName("유저 생성 성공 시나리오")
+    void createUser_Success() {
+        // given
+        when(userRepository.existsByUserId(testUserId)).thenReturn(Mono.just(false));
+        when(userMapper.toEntity(userRequest)).thenReturn(userEntityBeforeSave);
+        when(userRepository.save(any(UserEntity.class))).thenReturn(Mono.just(userEntityAfterSave));
+        when(userMapper.toDto(userEntityAfterSave)).thenReturn(userResponse);
 
         // when
-        userService.createUser(request);
+        Mono<UserPayload.Response> result = userService.createUser(userRequest);
 
         // then
-//        StepVerifier.create(response)
-//                .assertNext(serverResponse -> assertEquals(200, serverResponse.statusCode().value())) // 성공 시 상태 코드 확인
-//                .verifyComplete();
-//
-//        verify(userRepository, times(1)).existsById("testUser");
-//        verify(userRepository, times(1)).save(any(UserEntity.class));
+        StepVerifier.create(result)
+                .expectNextMatches(response -> {
+                    assertThat(response.getUserId()).isEqualTo(testUserId);
+                    assertThat(response.getStatus()).isEqualTo(Status.ACTIVE);
+                    assertThat(response.getPayKey()).isNotNull();
+                    return true;
+                })
+                .verifyComplete();
+
+        // verify
+        verify(userRepository).existsByUserId(testUserId);
+        verify(userMapper).toEntity(userRequest);
+
+        // UserEntity 저장 시 withStatus, withPayKey 메서드 호출 확인
+        ArgumentCaptor<UserEntity> entityCaptor = ArgumentCaptor.forClass(UserEntity.class);
+        verify(userRepository).save(entityCaptor.capture());
+        UserEntity capturedEntity = entityCaptor.getValue();
+
+        assertThat(capturedEntity.getStatus()).isEqualTo(Status.ACTIVE);
+        assertThat(capturedEntity.getPayKey()).isNotNull();
+
+        verify(userMapper).toDto(userEntityAfterSave);
     }
 
     @Test
-    @Transactional
-    void createUser_shouldReturnError_whenUserIdIsNull() {
+    @DisplayName("이미 존재하는 유저ID로 생성 요청 시 예외 발생")
+    void createUser_AlreadyExists() {
         // given
-        UserPayload.Request request = UserPayload.Request.builder()
-                .userId(null)
-                .build();
-
-        ServerRequest serverRequest = mock(ServerRequest.class);
-        when(serverRequest.bodyToMono(UserPayload.Request.class)).thenReturn(Mono.just(request));
+        when(userRepository.existsByUserId(testUserId)).thenReturn(Mono.just(true));
 
         // when
-//        Mono<ServerResponse> response = userService.createUser(request);
-//
-//        // then
-//        StepVerifier.create(response)
-//                .expectErrorMatches(error -> error instanceof IllegalArgumentException
-//                        && error.getMessage().equals("userId is null or empty"))
-//                .verify();
-//
-//        verify(userRepository, never()).existsById(anyString()); // 호출되지 않아야 함
-//        verify(userRepository, never()).save(any(UserEntity.class)); // 저장 호출되지 않아야 함
+        Mono<UserPayload.Response> result = userService.createUser(userRequest);
+
+        // then
+        StepVerifier.create(result)
+                .expectErrorMatches(throwable ->
+                        throwable instanceof IllegalArgumentException &&
+                                throwable.getMessage().contains("userId is already exists"))
+                .verify();
+
+        // verify: 사용자가 이미 존재하므로 저장이 호출되면 안됨
+        verify(userRepository).existsByUserId(testUserId);
+        verify(userRepository, never()).save(any());
+        verify(userMapper, never()).toDto(any());
     }
 
     @Test
-    @Transactional
-    void createUser_shouldReturnError_whenUserIdAlreadyExists() {
-        // given
-        UserPayload.Request request = UserPayload.Request.builder()
-                .userId("existingUser")
-                .build();
+    @DisplayName("getPayKey를 통해 생성된 키의 형식 검증")
+    void validatePayKeyFormat() {
+        // when - protected 메서드 직접 호출
+        String payKey = userService.getPayKey();
 
-        ServerRequest serverRequest = mock(ServerRequest.class);
-        when(serverRequest.bodyToMono(UserPayload.Request.class)).thenReturn(Mono.just(request));
-
-        // Mock 데이터베이스 검증: userId가 이미 존재
-        when(userRepository.existsById("existingUser")).thenReturn(Mono.just(true));
-
-        // when
-//        Mono<ServerResponse> response = userService.createUser(request);
-//
-//        // then
-//        StepVerifier.create(response)
-//                .expectErrorMatches(error -> error instanceof IllegalArgumentException
-//                        && error.getMessage().equals("userId is already exists"))
-//                .verify();
-//
-//        verify(userRepository, times(1)).existsById("existingUser");
-//        verify(userRepository, never()).save(any(UserEntity.class)); // 저장 호출되지 않아야 함
+        // then
+        assertThat(payKey).isNotNull();
+        // 형식 검증: yyyyMMddHHmmss + UUID 3자리
+        assertThat(payKey).matches("\\d{14}[a-f0-9]{3}");
     }
-
-
 }
