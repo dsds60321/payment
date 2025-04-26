@@ -6,15 +6,23 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
+/**
+ * Data transfer objects for user operations.
+ */
 public class UserPayload {
 
+    /**
+     * Request payload for creating a user.
+     */
     @Getter
     @Builder
     public static class Request {
         private String userId;
     }
 
-    // TODO: 맵스트럭쳐 적용
+    /**
+     * Response payload for user operations.
+     */
     @Getter
     @Builder
     public static class Response {
